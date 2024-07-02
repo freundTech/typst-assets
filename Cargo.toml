@@ -12,3 +12,11 @@ license = "Apache-2.0"
 
 [features]
 fonts = []
+
+[dependencies]
+flate2 = "1"
+tar = "0.4.41"
+
+[build-dependencies]
+flate2 = "1"
+tar = "0.4"

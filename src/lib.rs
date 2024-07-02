@@ -2,6 +2,10 @@
 //!
 //! These are not part of the main compiler crate to keep its size down.
 
+use std::io::Read;
+#[cfg(feature = "fonts")]
+use flate2::read::GzDecoder;
+
 macro_rules! asset {
     ($path:literal) => {
         include_bytes!(concat!("../files/", $path)).as_slice()
@@ -58,26 +62,23 @@ pub mod icc {
 /// Bundled fonts.
 ///
 /// This returns an empty iterator if the `fonts` feature is disabled.
-pub fn fonts() -> impl Iterator<Item = &'static [u8]> {
+pub fn fonts() -> impl Iterator<Item = Vec<u8>> {
     #[cfg(not(feature = "fonts"))]
     return [].into_iter();
 
     #[cfg(feature = "fonts")]
-    [
-        asset!("fonts/LinLibertine_R.ttf"),
-        asset!("fonts/LinLibertine_RB.ttf"),
-        asset!("fonts/LinLibertine_RBI.ttf"),
-        asset!("fonts/LinLibertine_RI.ttf"),
-        asset!("fonts/NewCMMath-Book.otf"),
-        asset!("fonts/NewCMMath-Regular.otf"),
-        asset!("fonts/NewCM10-Regular.otf"),
-        asset!("fonts/NewCM10-Bold.otf"),
-        asset!("fonts/NewCM10-Italic.otf"),
-        asset!("fonts/NewCM10-BoldItalic.otf"),
-        asset!("fonts/DejaVuSansMono-Bold.ttf"),
-        asset!("fonts/DejaVuSansMono-BoldOblique.ttf"),
-        asset!("fonts/DejaVuSansMono-Oblique.ttf"),
-        asset!("fonts/DejaVuSansMono.ttf"),
-    ]
-    .into_iter()
+    {
+        let bytes = include_bytes!(concat!(env!("OUT_DIR"), "/fonts.tar.gz")).as_slice();
+        let tar = GzDecoder::new(bytes);
+        let mut archive = tar::Archive::new(tar);
+
+        let entries: Vec<Vec<u8>> = archive.entries().unwrap().map(|file| {
+            let mut res = Vec::new();
+            file.unwrap().read_to_end(&mut res).unwrap();
+
+            res
+        }).collect();
+
+        entries.into_iter()
+    }
 }
